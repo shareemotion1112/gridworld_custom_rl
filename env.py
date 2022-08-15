@@ -19,7 +19,7 @@ from env_interface import Env_interface
 # A : Action space, 상하좌우
 # P : transition kernel
 # R : bounded reward function
-# gamma : discount factor, 0 ~ 1
+# gamma : discount factor, 0 ~ 1,   환경 구성에는 필요없음.
 
 class GridWorldEnv(Env_interface):
     def __init__(self):
@@ -42,12 +42,22 @@ class GridWorldEnv(Env_interface):
         self.observation_space = [i for i in range(self.total_n_block)] # 이게 필요한 이유가 뭐지??        
 
         (self.grid_map, self.grid_fig_map, self.start_state, self.goal_state) = self._create_initial_map()
-        self.initial_grid_map = copy.copy(self.grid_map)
-        self.observation = copy.copy(self.grid_fig_map)
+        self.initial_grid_map = deepcopy(self.grid_map)
+        self.observation = deepcopy(self.grid_fig_map)
 
         self.agent_state = self.start_state # current_state
-        self.action = self._do_random_action()
 
+    def get_state(self):
+        return self.agent_state
+
+    def get_observation(self):
+        return self.observation
+
+    def get_grid_map(self):
+        return self.grid_map
+
+    def show_action_direction(self, action):
+        return self.action_to_dict[action]
 
     def _create_initial_map(self):
         weight = [np.exp(-i) for i in range(self.total_n_block)]
@@ -62,6 +72,13 @@ class GridWorldEnv(Env_interface):
         # define start_state and goal_state
         self.start_state = list(map(lambda x : x[0], np.where(self.grid_map == 0)))
         self.goal_state = list(map(lambda x : x[-1], np.where(self.grid_map == 0)))
+
+        print(f"\t\t start state : {self.start_state}")
+        self.grid_map[self.start_state[0], self.start_state[1]] = self.agent_color
+        self.grid_fig_map[ self.start_state[0] * self.scale[0]: (self.start_state[0] + 1) * self.scale[0], self.start_state[1] * self.scale[1]: (self.start_state[1] + 1) * self.scale[1] ] = self.agent_color
+        self.grid_map[self.goal_state[0], self.goal_state[1]] = self.goal_color
+        self.grid_fig_map[ self.goal_state[0] * self.scale[0]: (self.goal_state[0] + 1) * self.scale[0], self.goal_state[1] * self.scale[1]: (self.goal_state[1] + 1) * self.scale[1] ] = self.goal_color
+
         print(f"start at {self.start_state} , goal at {self.goal_state}")
 
         return (self.grid_map, self.grid_fig_map, self.start_state, self.goal_state)
@@ -82,18 +99,22 @@ class GridWorldEnv(Env_interface):
         next_state = (self.agent_state[0] + self.action_to_dict[action][0], self.agent_state[1] + self.action_to_dict[action][1])
     
         if np.min(next_state) < 0:
+            print(f"cond 1")
             return (self.grid_map, 0, False) # 경계를 넘어간 경우 보상은 0으로
 
         # curr_color = self.grid_map[self.agent_state[0], self.agent_state[1]]
         next_color = self.grid_map[next_state[0], next_state[1]]
 
         if next_color == 0:
+            print("cond 2")
             self.grid_map[self.agent_state] = 0
             self.grid_map[next_state] = self.agent_color
             return (self.grid_map, -10, False)
         if next_color == 1:
+            print("cond 3")
             return (self.grid_map, -100, False)
         if next_state == self.goal_state:
+            print("reach the goal")
             return (self.grid_map, 1000, True) # 차례로 (관측치, 보상, 게임이 종료되었는지)를 의미
 
     def reset(self):
@@ -102,7 +123,7 @@ class GridWorldEnv(Env_interface):
         self.observation = self._gridmap_to_fig(self.initial_grid_map)
         return self.observation
 
-    def _do_random_action(self):        
+    def get_random_action(self):        
         return random.choice(self.action_space)
 
 
