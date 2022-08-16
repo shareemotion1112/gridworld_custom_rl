@@ -5,7 +5,7 @@
 # observation
 
 
-from copy import deepcopy
+import copy
 import matplotlib.pyplot as plt
 import numpy as np
 import random
@@ -42,8 +42,8 @@ class GridWorldEnv(Env_interface):
         self.observation_space = [i for i in range(self.total_n_block)] # 이게 필요한 이유가 뭐지??        
 
         (self.grid_map, self.grid_fig_map, self.start_state, self.goal_state) = self._create_initial_map()
-        self.initial_grid_map = deepcopy(self.grid_map)
-        self.observation = deepcopy(self.grid_fig_map)
+        self.initial_grid_map = self.grid_map
+        self.observation = self.grid_fig_map
 
         self.agent_state = self.start_state # current_state
 
@@ -60,7 +60,7 @@ class GridWorldEnv(Env_interface):
         return self.action_to_dict[action]
 
     def _create_initial_map(self):
-        weight = [np.exp(-i) for i in range(self.total_n_block)]
+        weight = [np.exp(-i*2) for i in range(self.total_n_block)]
 
         # create initial map
         for i in range(self.number_of_grid[0]):
@@ -92,34 +92,44 @@ class GridWorldEnv(Env_interface):
 
     def render(self):    
         fig = plt.clf()
-        plt.imshow(self.observation)
-        plt.pause(0.001)
+        plt.imshow(self._gridmap_to_fig(self.grid_map))
+        plt.pause(0.1)
     
     def step(self, action):
         next_state = (self.agent_state[0] + self.action_to_dict[action][0], self.agent_state[1] + self.action_to_dict[action][1])
     
-        if np.min(next_state) < 0:
-            print(f"cond 1")
+        if np.min(next_state) < 0 or next_state[0] >= self.number_of_grid[0] or next_state[1] >= self.number_of_grid[1]:
+            print("agent get out of grid!")
             return (self.grid_map, 0, False) # 경계를 넘어간 경우 보상은 0으로
 
         # curr_color = self.grid_map[self.agent_state[0], self.agent_state[1]]
         next_color = self.grid_map[next_state[0], next_state[1]]
 
-        if next_color == 0:
-            print("cond 2")
-            self.grid_map[self.agent_state] = 0
-            self.grid_map[next_state] = self.agent_color
+        print(f"next color : {next_color}")
+
+        if next_color == 0:      
+            print("next color is not blocked")      
+            print(f"agent state : {self.agent_state}, next state : {next_state}, initial_grid_map : {self.initial_grid_map}")
+            
+            self.initial_grid_map[np.where(self.initial_grid_map == self.agent_color)] = 0
+            self.grid_map = self.initial_grid_map
+            self.grid_map[next_state[0], next_state[1]] = self.agent_color
+            self.agent_state = next_state
             return (self.grid_map, -10, False)
         if next_color == 1:
-            print("cond 3")
+            print("blocked")
             return (self.grid_map, -100, False)
-        if next_state == self.goal_state:
+
+        if next_color == self.goal_color:
             print("reach the goal")
             return (self.grid_map, 1000, True) # 차례로 (관측치, 보상, 게임이 종료되었는지)를 의미
 
+        print(f"next color is None : {next_state}")        
+        return (self.grid_map, 0, False)
+
     def reset(self):
-        self.agent_state = deepcopy(self.start_state)
-        self.grid_map = deepcopy(self.initial_grid_map)
+        self.agent_state = self.start_state
+        self.grid_map = self.initial_grid_map
         self.observation = self._gridmap_to_fig(self.initial_grid_map)
         return self.observation
 

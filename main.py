@@ -28,14 +28,15 @@ learning_rate = 1e-3
 optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate)
 
 gamma = 0.9
-epsilon = 0.001
+epsilon = 0.5
 
 
-[epoch, epochs] = [0, 1000]
+[epoch, epochs] = [0, 10]
 losses = []
 
 from importlib import reload; reload(env)
 game = env.GridWorldEnv()
+
 state = torch.from_numpy(game.get_grid_map()).float()
 print(f"initial map : \n {game.get_grid_map()}")
 
@@ -44,17 +45,22 @@ while epoch < epochs:
     print(f"epoch : {epoch}")
     game.render()
     status = False
-    while not status:
+
+    while not status:        
         q_val = model(state.reshape(1, l1)).data.numpy()
         
-        if (random.random() < epsilon):
+        if (random.random() < epsilon / epoch):
             action = game.get_random_action()
         else:
             action = np.argmax(q_val)
-
-        # print(f"action : {game.show_action_direction(action)}")
+        print(f"action : {game.show_action_direction(action)}")
 
         (new_state, reward, status) = game.step(action)
+        print(new_state)
+
+        if new_state == state:
+            next;
+
         new_state = torch.FloatTensor(new_state)
 
         # print(f"new map : \n {new_state}")
@@ -67,7 +73,7 @@ while epoch < epochs:
         # X = torch.FloatTensor([q_val.squeeze()[action]])
         X = torch.Tensor(model(state.reshape(1, l1))[0][action])
 
-        print(f"\t\t X : {X}, Y: {Y} \n")
+        # print(f"\t\t X : {X}, Y: {Y} \n")
 
         loss = loss_fn(X, Y)
 
@@ -75,7 +81,6 @@ while epoch < epochs:
         loss.backward()
         losses.append(loss.item())
         optimizer.step()
-
+        
         state = new_state
-
-        print(status)
+        game.render()
