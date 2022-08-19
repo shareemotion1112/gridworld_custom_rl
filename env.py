@@ -41,14 +41,14 @@ class GridWorldEnv(Env_interface):
         self.scale = (int(self.grid_fig_size[0] / self.number_of_grid[0]), int(self.grid_fig_size[1] / self.number_of_grid[1]))
         self.observation_space = [i for i in range(self.total_n_block)] # 이게 필요한 이유가 뭐지??        
 
-        (self.grid_map, self.grid_fig_map, self.start_state, self.goal_state) = self._create_initial_map()
+        (self.grid_map, self.grid_fig_map, self.start_pos, self.goal_pos) = self._create_initial_map()
         self.initial_grid_map = self.grid_map
         self.observation = self.grid_fig_map
 
-        self.agent_state = self.start_state # current_state
+        self.agent_pos = self.start_pos # current_state
 
     def get_state(self):
-        return self.agent_state
+        return self.agent_pos
 
     def get_observation(self):
         return self.observation
@@ -69,19 +69,19 @@ class GridWorldEnv(Env_interface):
                 self.grid_map[i, j] = value
                 self.grid_fig_map[i*self.scale[0]:(i+1)*self.scale[0], j*self.scale[1]:(j+1)*self.scale[1]] = value
 
-        # define start_state and goal_state
-        self.start_state = list(map(lambda x : x[0], np.where(self.grid_map == 0)))
-        self.goal_state = list(map(lambda x : x[-1], np.where(self.grid_map == 0)))
+        # define start_pos and goal_pos
+        self.start_pos = list(map(lambda x : x[0], np.where(self.grid_map == 0)))
+        self.goal_pos = list(map(lambda x : x[-1], np.where(self.grid_map == 0)))
 
-        print(f"\t\t start state : {self.start_state}")
-        self.grid_map[self.start_state[0], self.start_state[1]] = self.agent_color
-        self.grid_fig_map[ self.start_state[0] * self.scale[0]: (self.start_state[0] + 1) * self.scale[0], self.start_state[1] * self.scale[1]: (self.start_state[1] + 1) * self.scale[1] ] = self.agent_color
-        self.grid_map[self.goal_state[0], self.goal_state[1]] = self.goal_color
-        self.grid_fig_map[ self.goal_state[0] * self.scale[0]: (self.goal_state[0] + 1) * self.scale[0], self.goal_state[1] * self.scale[1]: (self.goal_state[1] + 1) * self.scale[1] ] = self.goal_color
+        print(f"\t\t start state : {self.start_pos}")
+        self.grid_map[self.start_pos[0], self.start_pos[1]] = self.agent_color
+        self.grid_fig_map[ self.start_pos[0] * self.scale[0]: (self.start_pos[0] + 1) * self.scale[0], self.start_pos[1] * self.scale[1]: (self.start_pos[1] + 1) * self.scale[1] ] = self.agent_color
+        self.grid_map[self.goal_pos[0], self.goal_pos[1]] = self.goal_color
+        self.grid_fig_map[ self.goal_pos[0] * self.scale[0]: (self.goal_pos[0] + 1) * self.scale[0], self.goal_pos[1] * self.scale[1]: (self.goal_pos[1] + 1) * self.scale[1] ] = self.goal_color
 
-        print(f"start at {self.start_state} , goal at {self.goal_state}")
+        print(f"start at {self.start_pos} , goal at {self.goal_pos}")
 
-        return (self.grid_map, self.grid_fig_map, self.start_state, self.goal_state)
+        return (self.grid_map, self.grid_fig_map, self.start_pos, self.goal_pos)
 
     def _gridmap_to_fig(self, grid_map):
         grid_fig = np.zeros(self.grid_fig_size)
@@ -96,25 +96,25 @@ class GridWorldEnv(Env_interface):
         plt.pause(0.1)
     
     def step(self, action):
-        next_state = (self.agent_state[0] + self.action_to_dict[action][0], self.agent_state[1] + self.action_to_dict[action][1])
+        next_state = (self.agent_pos[0] + self.action_to_dict[action][0], self.agent_pos[1] + self.action_to_dict[action][1])
     
         if np.min(next_state) < 0 or next_state[0] >= self.number_of_grid[0] or next_state[1] >= self.number_of_grid[1]:
             print("agent get out of grid!")
             return (self.grid_map, 0, False) # 경계를 넘어간 경우 보상은 0으로
 
-        # curr_color = self.grid_map[self.agent_state[0], self.agent_state[1]]
+        # curr_color = self.grid_map[self.agent_pos[0], self.agent_pos[1]]
         next_color = self.grid_map[next_state[0], next_state[1]]
 
         print(f"next color : {next_color}")
 
         if next_color == 0:      
             print("next color is not blocked")      
-            print(f"agent state : {self.agent_state}, next state : {next_state}, initial_grid_map : {self.initial_grid_map}")
+            print(f"agent state : {self.agent_pos}, next state : {next_state}, initial_grid_map : {self.initial_grid_map}")
             
             self.initial_grid_map[np.where(self.initial_grid_map == self.agent_color)] = 0
             self.grid_map = self.initial_grid_map
             self.grid_map[next_state[0], next_state[1]] = self.agent_color
-            self.agent_state = next_state
+            self.agent_pos = next_state
             return (self.grid_map, -10, False)
         if next_color == 1:
             print("blocked")
@@ -128,7 +128,7 @@ class GridWorldEnv(Env_interface):
         return (self.grid_map, 0, False)
 
     def reset(self):
-        self.agent_state = self.start_state
+        self.agent_pos = self.start_pos
         self.grid_map = self.initial_grid_map
         self.observation = self._gridmap_to_fig(self.initial_grid_map)
         return self.observation
