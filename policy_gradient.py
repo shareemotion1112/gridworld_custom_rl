@@ -8,7 +8,7 @@ import matplotlib.pylab as plt
 
 
 class Policy_Gradient:
-    def __init__(self):
+    def __init__(self, n_epi = 1, n_iteration_per_one_game = 10000):
         self.l1 = 100
         self.l2 = 150
         self.l3 = 100
@@ -20,8 +20,9 @@ class Policy_Gradient:
         self.loss_fn = None
         self.optimizer = None
         self.state = None
-        self.n_episodes = 100
-        self.n_epochs = 1000
+        self.n_episodes = n_epi
+        self.n_epochs = n_iteration_per_one_game
+        self.game = None
 
     def model(self):
         model = torch.nn.Sequential( 
@@ -48,39 +49,55 @@ class Policy_Gradient:
         self.data = []
 
     def run(self):
-        game = env.GridWorldEnv()
+        self.game = env.GridWorldEnv()
         self.policy = self.model()
         self.loss_fn = torch.nn.MSELoss()        
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr = self.learning_rate)
 
         for epi in range(self.n_episodes):
-            state = torch.from_numpy(game.get_grid_map()).float()
-            score = 0.0
-            epoch = 0
-            while epoch < self.n_epochs:
-                epoch += 1
-                game.render()
-                status = False
+            state = torch.from_numpy(self.game.get_grid_map()).float()
+            score = 0.0           
+            
+            status = False
 
-                while not status:
-                    prob_action = self.policy(self.state.reshape(1, self.l1))
-                    action = Categorical(prob_action).sample()
+            while not status:
+                prob_action = self.policy(state.reshape(1, self.l1))
+                action = Categorical(prob_action).sample().numpy()[0]
 
-                    (new_state, reward, status) = game.step(action)
+                (new_state, reward, status) = self.game.step(action)
 
-                    if reward == 0:
-                        reward = -1 # 찾는 횟수가 증가하면 패널티를 주기 위함
+                if reward == 0:
+                    reward = -1 # 찾는 횟수가 증가하면 패널티를 주기 위함
 
-                    self.policy.put_data((reward, prob_action))
+                self.put_data((reward, prob_action))
 
-                    if new_state == state:
-                        next
+                if new_state == state:
+                    next
 
-                    new_state = torch.FloatTensor(new_state)
-                    state = new_state
-                    score += reward
-            self.policy.train()
+                new_state = torch.FloatTensor(new_state)
+                state = new_state
+                score += reward
+                print("=", end="")
+            self.policy.train() 
 
+    def test(self):
+        status = False
+        self.game.reset()
+        self.game.render()
+
+        state = torch.from_numpy(self.game.get_grid_map()).float()
+        while not status:            
+            prob_action = self.policy(state.reshape(1, self.l1))
+            action = Categorical(prob_action).sample().numpy()[0]
+
+            (new_state, reward, status) = self.game.step(action)
+
+            if new_state == state:
+                next
+
+            new_state = torch.FloatTensor(new_state)
+            state = new_state
+            self.game.render()
 
 
 
