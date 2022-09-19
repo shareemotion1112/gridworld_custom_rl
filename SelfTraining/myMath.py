@@ -5,9 +5,6 @@ import pandas as pd
 
 
 
-
-# data_torch = torch.tensor(data.values, device = self.cuda_device)
-
 def sharpening(prob_arr, temperature=0.01):
     result = np.zeros_like(prob_arr.shape[0])
     
@@ -22,19 +19,19 @@ def sharpening(prob_arr, temperature=0.01):
         result[i, :] = numerator / denominator
     return result
 
-def cal_pdf_gaussian(x, mu, sd):
+def cal_probability_density_by_gaussian(x, mu, sd):
     return torch.exp( -((x - mu) / sd)**2 / 2 ) / torch.sqrt( torch.tensor(2*math.pi) ) / sd
 
-def remove_col_from_torch_tensor(df_t : torch.tensor, ind : np.int32):
+def remove_column_of_torch_tensor(df_t : torch.tensor, ind : np.int32):
     return df_t[:, np.arange(df_t.shape[1]) != ind]
 
 
-def get_prior_prob(D_l, y_name, level):
-    prior_prob = np.zeros((len(level), 1))
-    for ind, lv in enumerate(level):
-        D_l_lv = D_l.loc[D_l[y_name] == lv]
-        prior_prob[ind, 0] = D_l_lv.shape[0] / D_l.shape[0]
-    return prior_prob
+# def get_prior_probability(D_l, y_name, level):
+#     prior_prob = np.zeros((len(level), 1))
+#     for ind, lv in enumerate(level):
+#         D_l_lv = D_l.loc[D_l[y_name] == lv]
+#         prior_prob[ind, 0] = D_l_lv.shape[0] / D_l.shape[0]
+#     return prior_prob
 
 
 def factorize(x : np.array, sd_interval = 0.5, mu_input = None, sd_input = None):

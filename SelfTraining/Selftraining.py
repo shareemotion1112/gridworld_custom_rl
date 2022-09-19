@@ -4,11 +4,14 @@ Created on Thu Sep 15 08:09:57 2022
 
 @author: coolc
 """
+import os
+root_dir = os.path.dirname(os.path.realpath('__file__'))
+import sys
+sys.path.append(root_dir)
 
 from copyreg import pickle
 import numpy as np
 import pandas as pd
-from pydantic import root_validator
 from scipy.stats import norm
 from myMath import *
 import torch
@@ -66,9 +69,6 @@ class Selftranining:
         self.is_save_file = is_save_file
         self.use_interfaction_features = use_interaction_features
 
-
-
-
     
     def predict_by_GNB(self, data_torch : torch.tensor, prior_prob_matrix_torch: torch.tensor):
         """
@@ -77,7 +77,7 @@ class Selftranining:
 
         y_logs = torch.log(prior_prob_matrix_torch).reshape(1, -1).repeat(data_torch.shape[0], 1)
 
-        decision_matrix_torch, prob_row_norm_torch = self.get_decision_and_prob_row(data_torch, y_logs)
+        decision_matrix_torch, prob_row_norm_torch = self.get_decision_and_probability_per_class(data_torch, y_logs)
 
         # print(f"y logs : {y_logs}, {y_logs.shape}")
 
@@ -96,7 +96,7 @@ class Selftranining:
 
             y_prob_torch[ind, 0] = ( data_lv_torch.shape[0] / self.D_l_torch.shape[0] )           
 
-            data_lv_torch_wo_Y = remove_col_from_torch_tensor(data_lv_torch, self.y_ind)
+            data_lv_torch_wo_Y = remove_column_of_torch_tensor(data_lv_torch, self.y_ind)
 
             self.mu_matrix_torch_D_l[ind, :] = torch.mean(data_lv_torch_wo_Y, 0, False)
             self.sd_matrix_torch_D_l[ind, :] = torch.std(data_lv_torch_wo_Y, 0, False)
@@ -104,13 +104,13 @@ class Selftranining:
         return y_prob_torch
 
 
-    def get_decision_and_prob_row(self, data_unlabeled : torch.tensor, y_logs_torch : torch.tensor):
+    def get_decision_and_probability_per_class(self, data_unlabeled : torch.tensor, y_logs_torch : torch.tensor):
         prob_rows_torch = torch.zeros((data_unlabeled.shape[0], len(self.levels)), dtype=torch.float64, device=self.cuda_device)
         decision_matrix_torch = torch.zeros( data_unlabeled.shape[0], dtype=torch.float64, device=self.cuda_device)
 
         # calculate the probability belong to certain class
         for i in range(len(self.levels)):
-            prob_tmps_torch = cal_pdf_gaussian(data_unlabeled, self.mu_matrix_torch_D_l[i, :], self.sd_matrix_torch_D_l[i, :])
+            prob_tmps_torch = cal_probability_density_by_gaussian(data_unlabeled, self.mu_matrix_torch_D_l[i, :], self.sd_matrix_torch_D_l[i, :])
             prob_tmps_torch = torch.where(prob_tmps_torch != 0, prob_tmps_torch, 1e-4)
             prob_rows_torch[:, i] = torch.nansum(torch.log(prob_tmps_torch), dim = 1)
 
@@ -150,8 +150,8 @@ class Selftranining:
         y_logs_torch = torch.log(y_prob_torch.reshape(1, -1)).repeat(data_torch.shape[0], 1)
 
         # cal decision matrix
-        data_torch_wo_Y = remove_col_from_torch_tensor(data_torch, self.y_ind)
-        decision_matrix_torch, prob_row_norm_torch = self.get_decision_and_prob_row(data_torch_wo_Y, y_logs_torch)
+        data_torch_wo_Y = remove_column_of_torch_tensor(data_torch, self.y_ind)
+        decision_matrix_torch, prob_row_norm_torch = self.get_decision_and_probability_per_class(data_torch_wo_Y, y_logs_torch)
 
         # make result
         result = {'prob' : prob_row_norm_torch.cpu().numpy(), 'class' : decision_matrix_torch.cpu().numpy()}
