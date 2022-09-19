@@ -12,12 +12,11 @@ sys.path.append(root_dir)
 from copyreg import pickle
 import numpy as np
 import pandas as pd
-from scipy.stats import norm
-from myMath import *
+from SelfTraining.myMath import *
 import torch
 from sklearn.linear_model import LinearRegression, Lasso, Ridge
 import scipy
-
+import platform
 
 
 class Selftranining:
@@ -37,12 +36,15 @@ class Selftranining:
         self.sd_threshold = sd_threshold
         self.is_adjust_dnorm_fix = is_adjust_dnorm_fix
         
-        self.cuda_device = torch.device('cuda:0')
+        if platform.platform()[:5] == 'macOS':
+            self.cuda_device = torch.device('mps')
+        else:
+            self.cuda_device = torch.device('cuda:0')
 
         # convert to torch.tensor of D_l and D_u
         self.D_l = D_l; self.D_u = D_u
-        self.D_l_torch = torch.tensor(D_l.values, dtype=torch.float64, device = self.cuda_device)
-        self.D_u_torch = torch.tensor(D_u.values, dtype=torch.float64, device = self.cuda_device)
+        self.D_l_torch = torch.tensor(D_l.values, dtype=torch.float32, device = self.cuda_device)
+        self.D_u_torch = torch.tensor(D_u.values, dtype=torch.float32, device = self.cuda_device)
 
 
         # y_name, and levels
@@ -53,8 +55,8 @@ class Selftranining:
         # mu and sd
         self.mu_matrix = None
         self.sd_matrix = None
-        self.mu_matrix_torch_D_l = torch.zeros((len(self.levels), self.D_l.shape[1] - 1), dtype=torch.float64, device=self.cuda_device)
-        self.sd_matrix_torch_D_l = torch.zeros((len(self.levels), self.D_l.shape[1] - 1), dtype=torch.float64, device=self.cuda_device)
+        self.mu_matrix_torch_D_l = torch.zeros((len(self.levels), self.D_l.shape[1] - 1), dtype=torch.float32, device=self.cuda_device)
+        self.sd_matrix_torch_D_l = torch.zeros((len(self.levels), self.D_l.shape[1] - 1), dtype=torch.float32, device=self.cuda_device)
         # D_u는 Y값이 없기 때문에 mu, sd matrix를 만들 수 없음
 
 
@@ -89,7 +91,7 @@ class Selftranining:
         calculate prior probaility.
         also, calculate mu and sd matrix of labeled data
         """
-        y_prob_torch = torch.zeros( (len(self.levels), 1), dtype=torch.float64, device = self.cuda_device)
+        y_prob_torch = torch.zeros( (len(self.levels), 1), dtype=torch.float32, device = self.cuda_device)
         
         for ind, lv in enumerate(self.levels):
             data_lv_torch = self.D_l_torch[self.D_l_torch[:, self.y_ind] == lv, :]           
@@ -105,8 +107,8 @@ class Selftranining:
 
 
     def get_decision_and_probability_per_class(self, data_unlabeled : torch.tensor, y_logs_torch : torch.tensor):
-        prob_rows_torch = torch.zeros((data_unlabeled.shape[0], len(self.levels)), dtype=torch.float64, device=self.cuda_device)
-        decision_matrix_torch = torch.zeros( data_unlabeled.shape[0], dtype=torch.float64, device=self.cuda_device)
+        prob_rows_torch = torch.zeros((data_unlabeled.shape[0], len(self.levels)), dtype=torch.float32, device=self.cuda_device)
+        decision_matrix_torch = torch.zeros( data_unlabeled.shape[0], dtype=torch.float32, device=self.cuda_device)
 
         # calculate the probability belong to certain class
         for i in range(len(self.levels)):
@@ -145,8 +147,8 @@ class Selftranining:
 
         # cal log(prior_prob)
         y_prob_torch = self.calculate_prior_probability()
-        y_prob_torch = torch.where(y_prob_torch == torch.tensor([0], dtype=torch.float64, device=self.cuda_device), \
-                                    torch.tensor([1], dtype=torch.float64, device=self.cuda_device), y_prob_torch)        
+        y_prob_torch = torch.where(y_prob_torch == torch.tensor([0], dtype=torch.float32, device=self.cuda_device), \
+                                    torch.tensor([1], dtype=torch.float32, device=self.cuda_device), y_prob_torch)        
         y_logs_torch = torch.log(y_prob_torch.reshape(1, -1)).repeat(data_torch.shape[0], 1)
 
         # cal decision matrix
