@@ -8,6 +8,12 @@ import numpy as np
 import pandas as pd
 import platform
 
+root_dir = os.path.dirname(os.path.realpath('__file__'))
+
+import sys
+sys.path.append(root_dir)
+
+
 from SelfTraining.myMath import factorize
 from sklearn.model_selection import train_test_split
 

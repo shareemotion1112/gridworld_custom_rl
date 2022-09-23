@@ -114,7 +114,7 @@ class Selftranining:
         for i in range(len(self.levels)):
             prob_tmps_torch = cal_probability_density_by_gaussian(data_unlabeled, self.mu_matrix_torch_D_l[i, :], self.sd_matrix_torch_D_l[i, :])
             prob_tmps_torch = torch.where(prob_tmps_torch != 0, prob_tmps_torch, 1e-4)
-            prob_rows_torch[:, i] = torch.nansum(torch.log(prob_tmps_torch), dim = 1)
+            prob_rows_torch[:, i] = torch.sum(torch.log(prob_tmps_torch), dim = 1)
 
         prob_row_tmp_torch = torch.exp( (prob_rows_torch + y_logs_torch) / self.dnorm_fix )
 
@@ -131,7 +131,8 @@ class Selftranining:
                     break;
                 iter += 1
 
-        sum_arr = torch.nansum(prob_row_tmp_torch, dim = 1).reshape(-1, 1)        
+        sum_arr = torch.sum(prob_row_tmp_torch, dim = 1)
+        sum_arr = sum_arr.reshape(-1, 1)
         sum_arr_row = sum_arr.repeat(1, len(self.levels))
 
         prob_row_norm_torch = prob_row_tmp_torch / sum_arr_row
@@ -147,8 +148,11 @@ class Selftranining:
 
         # cal log(prior_prob)
         y_prob_torch = self.calculate_prior_probability()
-        y_prob_torch = torch.where(y_prob_torch == torch.tensor([0], dtype=torch.float32, device=self.cuda_device), \
-                                    torch.tensor([1], dtype=torch.float32, device=self.cuda_device), y_prob_torch)        
+
+        zero_tensor = torch.tensor(0, dtype=torch.float32, device=self.cuda_device)
+        one_tensor = torch.tensor(1, dtype=torch.float32, device=self.cuda_device)
+
+        y_prob_torch = torch.where(y_prob_torch == zero_tensor, one_tensor, y_prob_torch)        
         y_logs_torch = torch.log(y_prob_torch.reshape(1, -1)).repeat(data_torch.shape[0], 1)
 
         # cal decision matrix
