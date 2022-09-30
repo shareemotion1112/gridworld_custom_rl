@@ -40,7 +40,9 @@ class Policy_Gradient:
 
     def train(self):
         R = 0 
-        for r, prob in self.data[::-1]:
+        for r, prob in self.data[::-1]: 
+            # 리턴 계산이 어려워서 게임을 한번 끝까지 보내고 끝에서부터 리턴을 계산하여 파라미터 업데이트
+            # 이렇게 해도 되고, sampling 해서 평균으로 진행해도 됨
             R = r + self.gamma * R
             loss = - torch.log(prob) * R
             self.optimizer.zero_grad()

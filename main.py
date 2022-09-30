@@ -17,9 +17,16 @@ if args["type"] == "dqn":
     dqn.run()
 
 
-# if args["type"] == 'pg':
-print('run policy gradient')
-from policy_gradient import Policy_Gradient
-pg = Policy_Gradient(n_epi=100)
-pg.run()
-pg.test()
+if args["type"] == 'pg':
+    print('run policy gradient')
+    from policy_gradient import Policy_Gradient
+    pg = Policy_Gradient(n_epi=100)
+    pg.run()
+    pg.test()
+
+if args["type"] == 'ac':
+    print('run actor critic')
+    from actor_critic import Actor_Critic
+    ac = Actor_Critic(n_epi=100)
+    ac.run()
+    ac.test()
