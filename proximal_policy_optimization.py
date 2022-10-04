@@ -64,7 +64,11 @@ class PPO():
         s_matrix, a_matrix, r_matrix, s_prime_matrix, done_mask, probability_of_actions = self.create_batch()
 
         for i in range(self.period_for_timeDelta):
-            td_target_matrix = r_matrix + self.gamma * self.critic_model(s_prime_matrix) * done_mask # r + gamma * V
+            td_target_matrix = r_matrix + self.gamma * self.critic_model(s_prime_matrix) * done_mask 
+            # td_target = r + gamma * V
+            # δ_t= r_t + γV * s_{t+1} − V(s_t)
+            # A_t = δ_t + γλ * δ_{t+1} + ... + (γλ)^{T−t+1} * δ_{T− 1}
+            #     = δ_t + γλA_{t+1}
             delta_matrix = td_target_matrix - self.critic_model(s_matrix)
             delta_matrix = delta_matrix.detach().numpy()
 
