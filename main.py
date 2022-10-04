@@ -34,6 +34,6 @@ if args["type"] == 'ac':
 if args["type"] == 'ppo':
     print('run PPO')
     from proximal_policy_optimization import PPO
-    ppo = PPO(n_epi=100)
+    ppo = PPO(n_epi=1000)
     ppo.run()
     ppo.test()

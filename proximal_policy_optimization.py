@@ -29,8 +29,7 @@ class PPO():
 
         # new hyper-parameter
         self.lmbda = 0.95
-        self.epsilon = 0.1
-        self.period_for_collecting_data = 500
+        self.period_for_collecting_data = 100
         self.period_for_timeDelta = 3
         self.epsilon_for_clip = 0.1
 
