@@ -30,7 +30,7 @@ class PPO():
         # new hyper-parameter
         self.lmbda = 0.95
         self.period_for_collecting_data = 100
-        self.period_for_timeDelta = 3
+        self.period_for_update_network = 3
         self.epsilon_for_clip = 0.1
 
 
@@ -62,7 +62,7 @@ class PPO():
     def train(self):
         s_matrix, a_matrix, r_matrix, s_prime_matrix, done_mask, probability_of_actions = self.create_batch()
 
-        for i in range(self.period_for_timeDelta):
+        for i in range(self.period_for_update_network):
             td_target_matrix = r_matrix + self.gamma * self.critic_model(s_prime_matrix) * done_mask 
             # td_target = r + gamma * V
             # δ_t= r_t + γV * s_{t+1} − V(s_t)
