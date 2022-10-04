@@ -30,3 +30,10 @@ if args["type"] == 'ac':
     ac = Actor_Critic(n_epi=100)
     ac.run()
     ac.test()
+
+if args["type"] == 'ppo':
+    print('run PPO')
+    from proximal_policy_optimization import PPO
+    ppo = PPO(n_epi=100)
+    ppo.run()
+    ppo.test()

@@ -83,8 +83,6 @@ class Actor_Critic():
                 probability_of_action = self.actor_model(state.reshape(1, self.l1))
                 value = self.critic_model(state.reshape(1, self.l1))
 
-                test = torch.distributions.Categorical(probability_of_action)
-
                 action = torch.distributions.Categorical(probability_of_action).sample().numpy()[0]
 
                 (new_state, reward, status) = self.game.step(action)
